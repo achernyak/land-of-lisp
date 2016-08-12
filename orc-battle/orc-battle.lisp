@@ -101,3 +101,21 @@
 (defun monsters-dead ()
   (every #'monster-dead *monsters*))
 
+(defun show-monsters ()
+  (fresh-line)
+  (princ "Your foes:")
+  (let ((x 0))
+    (map 'list
+	 (lambda (m)
+	   (fresh-line)
+	   (princ "   ")
+	   (princ (incf x))
+	   (princ ". ")
+	   (if (monster-dead m)
+	       (princ "**dead**")
+	       (progn (princ "(Health=")
+		      (princ (monster-health m))
+		      (princ ") ")
+		      (monster-show m))))
+	 *monsters*)))
+
