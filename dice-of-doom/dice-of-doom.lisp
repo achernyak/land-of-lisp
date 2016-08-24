@@ -1,6 +1,6 @@
 (defparameter *num-players* 2)
 (defparameter *max-dice* 3)
-(defparameter *board-size* 2)
+(defparameter *board-size* 3)
 (defparameter *board-hexnum* (* *board-size* *board-size*))
 
 (defun board-array (lst)
@@ -137,3 +137,60 @@
     (if (> (length w) 1)
 	(format t "The game is a tie between ~a" (mapcar #'player-letter w))
 	(format t "The winner is ~a" (player-letter (car w))))))
+
+;; AI
+
+(defun rate-position (tree player)
+  (let ((moves (caddr tree)))
+    (if moves
+	(apply (if (eq (car tree) player)
+		   #'max
+		   #'min)
+	       (get-ratings tree player))
+	(let ((w (winners (cadr tree))))
+	  (if (member player w)
+	      (/ 1 (length w))
+	      0)))))
+
+(defun get-ratings (tree player)
+  (mapcar (lambda (move)
+	    (rate-position (cadr move) player))
+	  (caddr tree)))
+
+(defun handle-computer (tree)
+  (let ((ratings (get-ratings tree (car tree))))
+    (cadr (nth (position (apply #'max ratings) ratings) (caddr tree)))))
+
+(defun handle-computer (tree)
+  (let ((ratings (get-ratings tree (car tree))))
+    (cadr (nth (position (apply #'max ratings) ratings) (caddr tree)))))
+
+(defun play-vs-computer (tree)
+  (print-info tree)
+  (cond ((null (caddr tree)) (announce-winner (cadr tree)))
+	((zerop (car tree)) (play-vs-computer (handle-human tree)))
+	(t (play-vs-computer (handle-computer tree)))))
+
+;; Memoizing
+
+(let ((old-neighbors (symbol-function 'neighbors))
+      (previous (make-hash-table)))
+  (defun neighbors (pos)
+    (or (gethash pos previous)
+	(setf (gethash pos previous) (funcall old-neighbors pos)))))
+
+(let ((old-game-tree (symbol-function 'game-tree))
+      (previous (make-hash-table :test #'equalp)))
+  (defun game-tree (&rest rest)
+    (or (gethash rest previous)
+	(setf (gethash rest previous) (apply old-game-tree rest)))))
+
+(let ((old-rate-position (symbol-function 'rate-position))
+      (previous (make-hash-table)))
+  (defun rate-position (tree player)
+    (let ((tab (gethash player previous)))
+      (unless tab
+	(setf tab (setf (gethash player previous) (make-hash-table))))
+      (or (gethash tree tab)
+	  (setf (gethash tree tab)
+		(funcall old-rate-position tree player))))))
