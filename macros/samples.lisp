@@ -52,3 +52,9 @@
     (split lst
 	   (f tail (1+ acc))
 	   acc)))
+
+(defun my-length (lst)
+  (reduce (lambda (x i)
+	    (1+ x))
+	  lst
+	  :initial-value 0))
