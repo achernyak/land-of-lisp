@@ -168,17 +168,17 @@
 	    (rate-position (cadr move) player))
 	  (caddr tree)))
 
-(defun handle-computer (tree)
-  (let ((ratings (get-ratings tree (car tree))))
-    (cadr (nth (position (apply #'max ratings) ratings) (caddr tree)))))
+(defparameter *ai-level* 4)
 
 (defun handle-computer (tree)
-  (let ((ratings (get-ratings tree (car tree))))
-    (cadr (nth (position (apply #'max ratings) ratings) (caddr tree)))))
+  (let ((ratings (get-ratings (limit-tree-depth tree *ai-level*)
+			      (car tree))))
+    (cadr (lazy-nth (position (apply #'max ratings) ratings)
+		    (caddr tree)))))
 
 (defun play-vs-computer (tree)
   (print-info tree)
-  (cond ((null (caddr tree)) (announce-winner (cadr tree)))
+  (cond ((lazy-null (caddr tree)) (announce-winner (cadr tree)))
 	((zerop (car tree)) (play-vs-computer (handle-human tree)))
 	(t (play-vs-computer (handle-computer tree)))))
 
@@ -205,3 +205,14 @@
       (or (gethash tree tab)
 	  (setf (gethash tree tab)
 		(funcall old-rate-position tree player))))))
+
+(defun limit-tree-depth (tree depth)
+  (list (car tree)
+	(cadr tree)
+	(if (zerop depth)
+	    (lazy-nil)
+	    (lazy-mapcar (lambda (move)
+			   (list (car move)
+				 (limit-tree-depth (cadr move) (1- depth))))
+			 (caddr tree)))))
+
