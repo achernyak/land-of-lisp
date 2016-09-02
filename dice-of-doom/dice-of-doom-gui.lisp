@@ -50,7 +50,8 @@
 				0.3)))
 		      (- yy (* *dice-scale* z 0.8)) col)))
 
-(defparameter *die-colors* '((255 63 63) (63 63 255)))
+(defparameter *die-colors* '((255 63 63) (63 63 255) (63 255 63)
+			     (255 63 255)))
 
 (defun draw-board-svg (board chosen-tile legal-tiles)
   (loop for y below *board-size*

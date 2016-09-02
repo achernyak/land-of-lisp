@@ -1,4 +1,4 @@
-(defparameter *num-players* 2)
+(defparameter *num-players* 4)
 (defparameter *max-dice* 3)
 (defparameter *board-size* 3)
 (defparameter *board-hexnum* (* *board-size* *board-size*))
@@ -52,7 +52,7 @@
 	      (if (eq (player src) cur-player)
 		(lazy-mapcan (lambda (dst)
 			  (if (and (not (eq (player dst) cur-player))
-				     (> (dice src) (dice dst)))
+				     (> (dice src) 1))
 			    (make-lazy
 			     (list (list (list src dst)
 					 (game-tree (board-attack board
@@ -60,6 +60,14 @@
 								  src
 								  dst
 								  (dice src))
+						    cur-player
+						    (+ spare-dice (dice dst))
+						    nil)
+					 (game-tree (board-attack-fail board
+								       cur-player
+								       src
+								       dst
+								       (dice src))
 						    cur-player
 						    (+ spare-dice (dice dst))
 						    nil))))
@@ -86,6 +94,32 @@
 		  collect (cond ((eq pos src) (list player 1))
 				((eq pos dst) (list player (1- dice)))
 				(t hex)))))
+
+(defun board-attack-fail (board player src dst dice)
+  (board-array (loop for pos from 0
+		  for hex across board
+		  collect (if (eq pos src)
+			      (list player 1)
+			      hex))))
+
+(defun roll-dice (dice-num)
+  (let ((total (loop repeat dice-num
+		  sum (1+ (random 6)))))
+    (fresh-line)
+    (format t "On ~a dice rolled ~a. " dice-num total)
+    total))
+
+(defun roll-against (src-dice dst-dice)
+  (> (roll-dice src-dice) (roll-dice dst-dice)))
+
+(defun pick-chance-branch (board move)
+  (labels ((dice (pos)
+	     (cadr (aref board pos))))
+    (let ((path (car move)))
+      (if (or (null path) (roll-against (dice (car path))
+				    (dice (cadr path))))
+	  (cadr move)
+	  (caddr move)))))
 
 (defun add-new-dice (board player spare-dice)
        (labels ((f (lst n acc)
@@ -128,7 +162,7 @@
 		 (print-moves (lazy-cdr moves) (1+ n)))))
       (print-moves moves 1))
     (fresh-line)
-    (cadr (lazy-nth (1- (read)) moves))))
+    (pick-chance-branch (cadr tree) (lazy-nth (1- (read)) moves))))
 
 (defun winners (board)
   (let* ((tally (loop for hex across board
@@ -172,8 +206,10 @@
 				     (car tree)
 				     most-positive-fixnum
 				     most-negative-fixnum)))
-    (cadr (lazy-nth (position (apply #'max ratings) ratings)
-		    (caddr tree)))))
+    (pick-chance-branch
+     (cadr tree)
+     (lazy-nth (position (apply #'max ratings) ratings)
+		      (caddr tree)))))
 
 (defun play-vs-computer (tree)
   (print-info tree)
